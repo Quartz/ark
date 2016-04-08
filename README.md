@@ -18,5 +18,6 @@ cd ..
 ## Usage
 
 ```
+./fetch.sh
 python process.py
 ```
