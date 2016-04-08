@@ -1,0 +1,585 @@
+#!/usr/bin/env ruby
+
+#############################################################################
+## Generates AS paths from warts traces.
+##
+## Output format:
+##
+##   P monitor_index dest_RTT dest_ip dest_prefix dest_AS AS_path[0] AS_path[1] ...
+##
+## where AS_path[i] is an element of the AS path in the format
+##
+##   AS_number:IP_hop_count
+##
+## For example, "1234:2" means 2 consecutive IP hops mapped to AS 1234.
+## The "AS_number" is "q" when the underlying traceroute path didn't have a
+## responding address at a given hop, and "r" when there was a responding
+## address that couldn't be mapped to any AS using the supplied
+## prefix-to-AS mapping file(s).
+##
+## --------------------------------------------------------------------------
+## Copyright (C) 2007-2012 The Regents of the University of California.
+##
+## This program is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation; either version 2 of the License, or
+## (at your option) any later version.
+## 
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+## 
+## You should have received a copy of the GNU General Public License
+## along with this program; if not, write to the Free Software
+## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+## 
+## $Id: warts-aspaths,v 1.6 2016/04/08 00:18:18 youngh Exp $
+#############################################################################
+
+require 'rubygems'
+require 'ostruct'
+require 'optparse'
+
+require 'wartslib'
+require 'asfinder'
+
+$options     = OpenStruct.new
+$asfinder    = nil
+$dst_asf     = nil
+$special_asf = nil
+
+opts = OptionParser.new
+opts.banner = "Usage: warts-aspaths [options] <warts-file-1> ..."
+
+opts.on("-A", "--asfinder", "=FILE",
+        "IP to prefix/AS mapping file in ASFinder format") do |v|
+  $options.asfinder = v
+end
+
+opts.on("-D", "--dst-pfx2as", "=FILE",
+        "IP to prefix/AS mapping file in ASFinder format for trace.dst") do |v|
+  $options.dst_asf = v
+end
+
+opts.on("-S", "--special-pfx2as", "=FILE",
+        "IP to prefix mapping file to identify use of special addresses") do |v|
+  $options.special_asf = v
+end
+
+opts.on("-v", "--[no-]verbose", TrueClass, "show detailed progress") do |v|
+  $options.verbose = v
+end
+
+begin
+  ARGV.replace opts.parse(*ARGV)
+rescue OptionParser::ParseError
+  $stderr.puts "ERROR: " + $!.to_s
+  $stderr.puts opts
+  exit 1
+end
+
+unless $options.test
+  unless $options.asfinder
+    $stderr.puts "ERROR: missing --asfinder argument"
+    $stderr.puts opts
+    exit 1
+  end
+end
+
+#===========================================================================
+#===========================================================================
+
+class ASPaths
+
+  attr_accessor :trace_count
+
+  def initialize
+    @monitor_info = {}  # index to "IP_addr\tAS_number\tindex"
+    @trace_count = 0
+    @timestamp_min = nil
+    @timestamp_max = nil
+    @paths = {}
+  end
+
+  def prefix_cmp(a, b)
+    aa = a.split(/\s+/)
+    ba = b.split(/\s+/)
+    ap = aa[1].split(/\//)
+    bp = ba[1].split(/\//)
+    ai = ap[0].split(/\./)
+    bi = bp[0].split(/\./)
+    for i in 0 .. 3
+      return -1 if(ai[i].to_i < bi[i].to_i)
+      return  1 if(ai[i].to_i > bi[i].to_i)
+    end
+    return -1 if(ap[1].to_i < bp[1].to_i)
+    return  1 if(ap[1].to_i > bp[1].to_i)
+    return -1 if(aa[0].to_i < ba[0].to_i)
+    return  1 if(aa[0].to_i > ba[0].to_i)
+    return 0
+  end
+
+  def print_all
+    printf "T\t%d\t%d\n", @timestamp_min, @timestamp_max
+
+    @monitor_info.each do |info, v|
+      printf "M\t%s\t%d\n", info, v
+    end
+
+    # @paths.each do |line, v|
+    @paths.keys.sort { |a, b| prefix_cmp(a, b) }.each do |line|
+      printf "P\t%s\n", line
+    end
+  end
+
+  def add_timestamp(timestamp)
+    @trace_count += 1
+
+    if @timestamp_min == nil || @timestamp_min > timestamp
+      @timestamp_min = timestamp
+    end
+
+    if @timestamp_max == nil || @timestamp_max < timestamp
+      @timestamp_max = timestamp
+    end
+  end
+
+  def monitor_key(address, as)
+    as_value = (as ? as : "UNKNOWN")
+    key = "#{address}\t#{as_value}"
+    id = @monitor_info[key]
+    if id == nil
+      @monitor_info[key] = @monitor_info.length
+    end
+    @monitor_info[key]
+  end
+
+  def add_path monitor, rtt, dst, prefix, dstas, aspath
+    line = "#{monitor}\t#{rtt}\t#{dst}\t#{prefix}\t#{dstas}"
+    for i in 0..aspath.length
+      line.concat("\t#{aspath[i]}");
+    end
+    @paths[line] = 1
+  end
+
+end
+
+#===========================================================================
+#===========================================================================
+
+# This tries to behave like skitter_as_links for edge cases.  For example,
+# if there is a response from the destination, then this only returns IP
+# hops up to the hop position of the response from the destination.  (Yes,
+# strange enough, there can be hops past the hop position of the
+# destination.)  This includes all responses at the hop position of the
+# destination, even if the responses weren't from the destination.
+#
+# This doesn't return the trailing gap.  So you can assume that if you
+# encounter a nil element before reaching the end of the result array, then
+# there will always be a non-nil element before reaching the end of the
+# array.
+#
+# This method may differ from skitter_as_links in the handling of traces with
+# loops.  It's possible skitter_as_links simply ignores traces with loops
+# (I need to investigate more), but this script doesn't.  However, in order
+# to properly generate AS links from traces with loops, we have to ignore the
+# hops in the loop.   For example, suppose the IP path looks like the
+# following:
+#
+#     1  2  3  L  4  5  L
+#
+# Then the loop hops are 'L  4  5  L'.  We should ignore all hops after
+# the first occurrence of L, since the 'L 4' IP link is most likely false
+# (and the remaining IP links in the loop are most likely redundant anyway).
+#
+# --------------------------------------------------------------------------
+#
+# This returns an array with hop addresses at the corresponding array
+# positions (the source is at index 0).  If there is more than one address
+# at a given hop position, then this will use a subarray to hold all the
+# addresses.  Otherwise, this stores a single address directly as a
+# dotted-decimal string.  If there isn't a response at a given hop position,
+# then the corresponding array location will contain a nil.
+def extract_ippath(trace)
+  retval = [ trace.src ]
+
+  dest_response = trace.find_dest_response
+  trace.each_hop_and_response do |hop, response, exists|
+    next unless exists
+    break if dest_response && hop > dest_response[0]
+
+    index = hop + 1
+    hop_addr = trace.hop_addr hop, response
+
+    if retval[index]
+      if retval[index].instance_of? Array
+        retval[index] << hop_addr
+      else
+        retval[index] = [ retval[index], hop_addr ]
+      end
+    else
+      retval[index] = hop_addr
+    end
+  end
+
+  if trace.loops > 1 || trace.stop_reason == Warts::Trace::STOP_LOOP
+    stopping_loop = find_stopping_loop(find_all_loops(retval))
+    if stopping_loop
+      start_index = stopping_loop[0]
+      truncated_length = start_index + 1
+      retval.pop while retval.length > truncated_length
+
+      # maintain invariant that path will not end in any nil's
+      retval.pop while retval.length > 0 && retval[-1] == nil
+    end
+  end
+
+  retval
+end
+
+
+# Returns an array of all loops found in the given IP path.
+#
+# You can apply this method to any trace, including traces without loops.
+# This returns an empty array if there are no loops.  Otherwise, each array
+# element specifies [ start_index, length, address ].
+#
+# The start index is the 0-based starting position of a loop.
+# A loop that appears in adjacent hops (e.g., 'B B' in 'A B B C') has
+# length 1.  A loop like 'B D B' has length 2.
+#
+# A path like 'A B B B' has two loops, both of length 1, starting at
+# indexes 1 and 2; that is, [1, 1, B] and [2, 1, B].
+#
+# Multiple responses at a hop don't affect the determination of loops in
+# a path.  That is, for the purposes of determining loops, it's as if there
+# were only one instance of each address at any given hop.
+def find_all_loops(ippath)
+  retval = []  # [ [ start_index, length, address ] ]
+
+  last_index = {}  # IP address => index of last occurrence of the address
+  ippath.each_with_index do |addresses, index|
+    next unless addresses
+
+    ( addresses.instance_of?(Array) ? addresses.uniq : [ addresses ] ).
+      each do |address|
+      if last_index[address]
+        length = index - last_index[address]
+        retval << [ last_index[address], length, address ]
+      end
+      last_index[address] = index
+    end
+  end
+
+  if $options.verbose
+    printf "\nIPPATH>> %p\n", ippath
+    printf "\nLOOPS>> %p\n", retval
+  end
+
+  retval.sort  # mainly to order by starting index
+end
+
+
+# Finds the loop, if any, that would have caused a trace to stop for
+# 'scamper -L 1 -l 1'.  This permits at most 1 loop of length 1, and no
+# loops of any longer length.
+#
+# You can apply this method to any trace, including traces without loops.
+# Returns nil if there is no stopping loop.
+def find_stopping_loop(loops)
+  saw_length1_loop = false
+  loops.each do |loop|
+    start_index, length, address = loop
+    if length == 1
+      return loop if saw_length1_loop
+      saw_length1_loop = true
+    else
+      return loop
+    end
+  end
+  nil
+end
+
+def process_ippath(aspaths, monitor, src_as, ippath, dst, dst_rtt)
+  aspath_in = generate_aspath src_as, ippath
+  return if aspath_in.length < 2
+
+  # look up details about the destination IP in BGP
+  dst_as = nil
+  dst_pfx = nil
+  dst_len = nil
+  if $dst_asf != nil
+    dst_as, dst_pfx, dst_len = $dst_asf.get_as dst
+  else
+    dst_as, dst_pfx, dst_len = $asfinder.get_as dst
+  end
+
+  # if we don't know anything about it
+  return if dst_as == nil
+  dst_pfx = "#{dst_pfx}/#{dst_len}"
+
+  hops = 0
+  for i in 0 .. aspath_in.length-1
+    if aspath_in[i] != nil
+      hops += 1
+    else
+      if ippath[i] == nil
+        aspath_in[i] = "q"
+      else
+        aspath_in[i] = "r"
+      end
+    end
+  end
+  return if hops == 0
+
+  print "\n[#{monitor} #{dst_pfx} #{dst_as}" if $options.verbose
+
+  aspath = []
+  asp_index = 0
+  cur_as = aspath_in[0]
+  cur_cn = 1
+  index = 1
+
+  while index < aspath_in.length
+    if aspath_in[index] != cur_as
+      aspath[asp_index] = "#{cur_as}:#{cur_cn}"
+      printf " %s", aspath[asp_index] if $options.verbose
+      asp_index += 1
+      cur_as = aspath_in[index]
+      cur_cn = 1
+    else
+      cur_cn += 1
+    end
+    index += 1
+  end
+
+  if(cur_as != nil)
+    aspath[asp_index] = "#{cur_as}:#{cur_cn}"
+    printf " %s", aspath[asp_index] if $options.verbose
+  end
+
+  print "]\n" if $options.verbose
+
+  return if aspath.length < 2
+  aspaths.add_path monitor, dst_rtt, dst, dst_pfx, dst_as, aspath
+end
+
+# Extracts all AS links from the given AS path and stores the links into
+# {aslinks}.
+def extract_all_aslinks(aslinks, monitor, aspath)
+  return if aspath.length < 2
+
+  # Handle the case of nil components at the beginning of the AS path,
+  # including a nil value for the AS of the traceroute source.
+  src_index = 0
+  while src_index < aspath.length - 1 && aspath[src_index] == nil
+    src_index += 1
+  end
+
+  dest_index = src_index + 1
+  while src_index < aspath.length - 1
+    while dest_index < aspath.length && aspath[dest_index] == nil
+      dest_index += 1
+    end
+    return unless dest_index < aspath.length
+
+    src_as = aspath[src_index]
+    dest_as = aspath[dest_index]
+    gap_length = dest_index - src_index - 1
+
+    printf "index: src=%d, dest=%d; src_as=%p, dest_as=%p\n",
+      src_index, dest_index, src_as, dest_as if $options.verbose
+
+    extract_aslinks aslinks, monitor, src_as, dest_as, gap_length
+
+    src_index = dest_index
+    dest_index += 1
+  end
+end
+
+
+# Extracts all possible AS links (that is, the cross product) from the
+# given pair of AS path components that are separated by {gap_length} gaps
+# (0 if the components are adjacent).  The AS path components, which must
+# not be nil (since nil's represent gaps), can be either a single AS or an
+# array of ASes.
+def extract_aslinks(aslinks, monitor, src_as, dest_as, gap_length)
+  simple_src = !src_as.instance_of?(Array)
+  simple_dest = !dest_as.instance_of?(Array)
+
+  if simple_src && simple_dest
+    aslinks.add_link monitor, src_as, dest_as, gap_length
+  elsif simple_src
+    dest_as.each do |dest|
+      aslinks.add_link monitor, src_as, dest, gap_length
+    end
+  elsif simple_dest
+    src_as.each do |src|
+      aslinks.add_link monitor, src, dest_as, gap_length
+    end
+  else
+    src_as.each do |src|
+      dest_as.each do |dest|
+        aslinks.add_link monitor, src, dest, gap_length
+      end
+    end
+  end
+end
+
+
+# Generates an AS path from the given IP path.
+def generate_aspath(src_as, ippath)
+  print "\n[" if $options.verbose
+
+  retval = []
+  ippath.each_with_index do |addresses, index|
+    unless addresses
+      print " *" if $options.verbose
+      next
+    end
+
+    if index == 0
+      printf " %s", (src_as ? src_as : "?") if $options.verbose
+      retval[index] = src_as
+    else
+      retval[index] = find_all_ases(addresses)
+    end
+  end
+
+  if $options.verbose
+    printf " ]\n"
+    p retval
+  end
+  retval
+end
+
+
+# Uses ASFinder to find the AS(es) for the given address or array of
+# addresses.
+#
+# If a single address is given to this method and that address doesn't have
+# a matching AS, then this returns nil.  If an array of addresses is given
+# to this method and none of the addresses has a matching AS, then this
+# returns nil.  If an array of addresses is given and an AS could be found
+# for at least one address, then this returns an array of only the ASes
+# that could be found (that is, this won't return an array containing nil's).
+#
+# NOTE: For some strange reason, a small fraction of collected traces have
+#       hops with a large number of responses (hundreds or, very rarely,
+#       thousands) from either the same IP address or different IP
+#       addresses (that may map to different ASes).  In order to avoid
+#       slowdowns in subsequent processing of AS paths, this returns only
+#       the unique AS(es).
+def find_all_ases(addresses)
+  if addresses.instance_of? Array
+    print " [" if $options.verbose
+    retval = []
+    addresses.each_with_index do |address, index|
+      print "," if $options.verbose && index > 0
+      as = find_as(address)
+      retval << as if as
+    end
+    print " ]" if $options.verbose
+
+    retval.uniq!
+    return nil if retval.empty?
+    return (retval.length == 1 ? retval[0] : retval)
+  else
+    return find_as(addresses)
+  end
+end
+
+
+def find_as(address)
+  if $special_asf != nil
+    as, prefix, len = $special_asf.get_as address
+    return "s" if(as != nil)
+  end
+  as, prefix, len = $asfinder.get_as address
+  as
+end
+
+
+def find_prefix(asfinder, address)
+  as, prefix, len = asfinder.get_as address
+  retval = "#{prefix}/#{len}"
+  retval
+end
+
+
+#############################################################################
+# Main
+#############################################################################
+
+unless $options.test
+  aspaths = ASPaths.new
+  $asfinder = CAIDA::ASFinder.new $options.asfinder
+
+  if $options.dst_asf != nil
+    $dst_asf = CAIDA::ASFinder.new $options.dst_asf;
+  end
+
+  if $options.special_asf != nil
+    $special_asf = CAIDA::ASFinder.new $options.special_asf;
+  end
+
+  ARGV.each do |path|
+    file = Warts::File.open path
+    unless file
+      $stderr.puts "ERROR: couldn't open '#{path}'; skipping"
+      next
+    end
+
+    src_ip = nil
+    src_as = nil
+    monitor = nil
+
+    file.add_filters Warts::TRACE
+    file.read do |trace|
+      next unless trace.dest_responded?
+
+      if $options.verbose
+        puts "-" * 78
+        puts trace.dump
+      end
+
+      aspaths.add_timestamp trace.start
+
+      ippath = extract_ippath trace
+      if $options.verbose
+        puts
+        p ippath
+      end
+
+      current_src_ip = ippath[0]
+      unless current_src_ip == src_ip
+        src_ip = current_src_ip
+        results = $asfinder.get_as src_ip
+        src_as = (results ? results[0] : nil)
+        monitor = aspaths.monitor_key src_ip, src_as
+      end
+
+      process_ippath aspaths, monitor, src_as, ippath, trace.dst, trace.dest_rtt
+
+    end
+  end
+
+  #=========================================================================
+
+  now = Time.now
+  printf "#INFO: generation_tool=%s\n", "$Id: warts-aspaths,v 1.6 2016/04/08 00:18:18 youngh Exp $"
+  printf "#INFO: generation_timestamp=%d (%s)\n", now.to_i, now.to_s
+  printf "#INFO: trace_count=%d\n", aspaths.trace_count
+  printf "#INFO: bgp_table=%s\n", $options.asfinder
+  printf "#INFO: dst_bgp_table=%s\n", $options.dst_asf if $options.dst_asf != nil
+
+  ARGV.each do |path|
+    printf "#INFO: input_file=%s\n", path
+  end
+
+  aspaths.print_all
+  exit 0
+end
+
+exit 0
