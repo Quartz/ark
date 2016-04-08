@@ -1,0 +1,143 @@
+# monitor|ip_address|geographic_location|geographic_latitude|geographic_longitude|as_number|organization_classification|organization_name
+aal-dk|62.107.66.33|Aalborg, DK|57.0488195|9.921747|197288|residential|Residential (STOFA)
+acc-gh|196.49.14.12|Accra, GH|5.6037168|-0.1869644|30997|infrastructure|Ghana Internet eXchange (GIX)
+adl-au|203.122.229.71|Adelaide, AU|-34.9286212|138.5999594|4739|residential|Residential (Internode)
+aep-ar|157.92.44.99|Buenos Aires, AR|-34.6036844|-58.3815591|3449|educational|Universidad de Buenos Aires
+ams-nl|192.42.115.98|Amsterdam, NL|52.3702157|4.8951679|1103|research|SURFnet
+ams2-nl|91.200.16.102|Amsterdam, NL|52.3702157|4.8951679|1200|infrastructure|AMS-IX
+ams5-nl|213.46.228.229|Amsterdam, NL|52.3702157|4.8951679|6830|commercial|Liberty Global
+ams6-nl|94.213.38.151|Amsterdam, NL|52.3702157|4.8951679|9143|residential|Residential (Ziggo)
+amw-us|129.186.1.240|Ames, IA, US|42.02335|-93.625622|2698|educational|Iowa State University
+anc-us|65.74.16.163|Anchorage, AK, US|61.2180556|-149.9002778|8047|commercial|GCI
+arn-se|194.68.13.6|Stockholm, SE|59.3327881|18.0644881|2603|research|NORDUnet
+ath-gr|77.49.101.239|Peania, GR|37.9553334|23.8522263|1241|residential|Residential (Forthnet)
+atl-us|65.50.110.191|Atlanta, GA, US|33.7489954|-84.3879824|31939|residential|Residential (DirectTV)
+avl-us|68.115.154.254|Lake Junaluska, NC, US|35.5278815|-82.9595811|20115|residential|Residential (Charter Business DSL)
+aza-us|184.98.79.143|Gilbert, AZ, US|33.3528264|-111.789027|209|residential|Residential (Century Link DSL)
+bbu-ro|5.2.151.201|Bucharest, RO|44.4267674|26.1025384|8708|residential|Residential (RCS/RDS))
+bcn-es|84.88.81.122|Barcelona, ES|41.387917|2.1699187|13041|educational|Universitat Politecnica de Catalunya
+bed-us|50.138.170.121|Concord, MA, US|42.4602778|-71.3494444|7922|residential|Residential (Comcast Cable)
+bed2-us|74.104.191.187|Groton, MA, US|42.6112018|-71.5745152|701|residential|Residential (Verizon Fios)
+bed3-us|146.115.72.2|Lexington, MA, US|42.4430372|-71.2289641|6079|residential|Residential (RCN)
+beg-rs|193.105.163.184|Belgrade, RS|44.786568|20.4489216|13004|infrastructure|Serbian Open eXchange (SOX)
+bfi-us|75.165.54.183|Seattle, WA, US|47.6062095|-122.3320708|209|residential|Residential (Centurylink GPON)
+bjc-us|209.245.28.50|Broomfield, CO, US|39.9205411|-105.0866504|3356|commercial|Level 3 Communications
+bjl-gm|196.46.233.22|Serrekunda, GM|13.438611|-16.6816667|37309|business|QCell
+blr-in|122.166.213.105|Bangaluru, IN|12.9715987|77.5945627|24560|residential|Residential (Airtel)
+bma-se|195.206.248.254|Kista, SE|59.4024802|17.9443237|49770|business|Acreo
+bma2-se|46.39.112.232|Stockholm, SE|59.3293235|18.0685808|50821|residential|Residential (Stockholms Stadsnat)
+bre-de|77.22.2.165|Bremen, DE|53.0792962|8.8016937|31334|residential|Residential (Kabel Deutschland)
+bre2-de|212.201.44.87|Bremen, DE|53.0792962|8.8016937|680|educational|Jacobs University Bremen
+bre3-de|95.90.200.110|Bremen, DE|53.0792962|8.8016937|31334|residential|Residential (Kabel Deutschland)
+bud2-hu|157.181.172.123|Budapest, HU|47.497912|19.040235|2012|educational|E&#246;tv&#246;s Lor&#225;nd University (ELTE)
+bwi-us|204.235.64.14|Aberdeen, MD, US|39.5095556|-76.1641197|668|research|US Army Research Lab
+cbg-uk|128.232.97.9|Cambridge, UK|52.2025441|0.1312368|786|educational|University of Cambridge
+cbr-au|203.16.208.142|Red Hill, AU|-38.378544|145.0320635|4739|residential|Residential (Internode)
+cdg-fr|85.31.196.71|Boulogne Billancourt, FR|48.84325|2.237803|30781|commercial|Jaguar Network
+cgk-id|202.180.0.200|Jakarta, ID|-6.211544|106.845172|7587|research|Indonesian IPv6 Task Force
+cjj-kr|150.183.95.135|Daejeon, KR|36.3504119|127.3845475|1237|research|KREONet2
+cld2-us|76.238.237.79|San Diego, CA, US|32.715738|-117.1610838|7018|residential|Residential (ATT U-verse)
+cmn-ma|196.200.131.131|Casablanca, MA|33.605381|-7.631949|30983|research|CNRST
+cph-dk|94.126.177.65|Ballerup, DK|55.724508|12.354765|59469|commercial|Solido Networks ApS
+dac-bd|119.40.82.245|Dhaka, BD|23.709921|90.407143|24122|commercial|BDCOM Online Limited at BD-IX
+dar-tz|196.49.5.66|Dar es Salaam, TZ|-6.792354|39.2083284|33791|infrastructure|Tanzania Internet Exchange (TIX)
+dfw-us|129.119.99.169|Dallas, TX, US|32.802955|-96.769923|1832|educational|Southern Methodist University
+dkr-sn|196.1.95.8|Dakar, SN|14.75|-17.3333333|8346|educational|UCAD
+dub-ie|193.1.193.136|Dublin, IE|53.34156|-6.257347|1213|research|HEANet
+eug-us|128.223.157.8|Eugene, OR, US|44.0520691|-123.0867536|3582|educational|University of Oregon
+fnl-us|129.82.138.43|Fort Collins, CO, US|40.5852602|-105.084423|12145|educational|Colorado State University
+gai-us|73.132.73.177|Rockville, MD, US|39.0839973|-77.1527578|7922|residential|Residential (Comcast)
+gig-br|200.159.255.29|Rio de Janeiro, BR|-22.9035393|-43.2095869|1916|research|RNP
+gva-ch|46.20.241.26|Geneva, CH|46.1983922|6.1422961|25091|commercial|IP-Max SA
+hel-fi|195.148.124.66|Espoo, FI|60.2052352|24.6540814|1741|educational|TKK
+her-gr|139.91.90.6|Heraklion, Crete, GR|35.329162|25.138526|8522|research|Foundation for Research and Technology - Hellas (FORTH)
+hkg-cn|213.254.227.26|Hong Kong, CN|22.2478599|114.2033843|3257|commercial|Tinet
+hkg2-cn|158.132.255.50|Hong Kong, CN|22.2783151|114.174695|4616|educational|Hong Kong Polytechnic University
+hkg3-cn|124.244.239.36|Hong Kong, CN|22.2783151|114.174695|9269|residential|Residential (Hong Kong Broadband Network, HKBN)
+hla-za|168.210.11.119|Johannesburg, ZA|-26.2041028|28.0473051|3741|residential|Residential
+hlz-nz|130.217.77.6|Hamilton, NZ|-37.7870012|175.279253|681|educational|University of Waikato
+hnl-us|205.166.205.222|Honolulu, HI, US|21.3069444|-157.8583333|6360|educational|University of Hawaii
+iad-us|192.149.252.140|Chantilly, VA, US|38.8942786|-77.4310992|10745|infrastructure|ARIN
+igx-us|104.169.173.127|Durham, NC, US|35.9940329|-78.898619|5650|residential|Residential (Frontier DSL)
+ith-us|74.79.78.80|Ithaca, NY, US|42.4439614|-76.5018807|11351|residential|Residential (Time Warner Cable)
+jfk-us|216.66.30.102|New York, NY, US|40.7143528|-74.0059731|6939|commercial|Hurricane Electric
+jlp-fr|78.246.179.195|Juan Les Pins, FR|43.5691905|7.1123854|12322|residential|Residential (Bouygues Telecom)
+jnb-za|196.10.53.6|Johannesburg, ZA|-26.2041028|28.0473051|37474|infrastructure|Johannesburg Internet Exchange (JINX; IXP-ZA)
+kgl-rw|197.243.51.140|Kigali, RW|-1.950106|30.058769|37228|educational|Carnegie Mellon University in Rwanda
+kna-cl|200.104.79.143|Vina del Mar, CL|-33.024527|-71.55234|22047|residential|Residential (VTR broadband)
+ktm-np|202.52.0.24|Kathmandu, NP|27.7|85.3333333|45170|research|Nepal Research And Education Network
+lax-us|137.164.84.50|Los Angeles, CA, US|34.0522342|-118.2436849|2152|research|CENIC
+lax3-us|128.9.160.226|Marina del Rey, CA, US|33.9802893|-118.4517449|4|educational|Information Sciences Inst., USC
+lej-de|139.18.1.244|Leipzig, DE|51.3396731|12.3713639|680|educational|Universitat Leipzig
+lex-us|96.29.182.38|Lexington, KY, US|38.0405837|-84.5037164|10796|residential|Residential (Time Warner Cable)
+los-ng|197.211.51.180|Lagos, NG|6.5243793|3.3792057|37148|infrastructure|IXP of Nigeria (IXPN)
+lpi2-se|85.228.193.7|Linkoping, SE|58.410807|15.6213727|2119|residential|Residential (Bredbandsbolaget)
+mel-au|128.250.97.84|Melbourne, AU|-37.8131869|144.9629796|10148|educational|University of Melbourne
+mmx-se|212.85.88.39|Lund, SE|55.7046601|13.1910073|8473|residential|Residential (Bahnhof)
+mmx2-se|93.182.182.221|Lund, SE|55.7046601|13.1910073|47155|commercial|(colo at) ViaEuropa
+mnl-ph|202.90.158.5|Quezon City, PH|14.6760413|121.0437003|9821|research|ASTI
+mnz-us|173.79.11.131|Manassas, VA, US|38.7509488|-77.4752667|701|residential|Residential (Verizon Fios)
+mry-us|70.90.166.170|Carmel, CA, US|36.5552386|-121.9232879|7922|residential|Residential (Comcast Business Broadband)
+msy-us|98.164.70.214|New Orleans, LA, US|29.9667|-90.05|22773|residential|Residential (Cox Broadband)
+mty-mx|200.94.183.154|Monterrey, MX|25.673211|-100.309201|22894|infrastructure|NIC Mexico
+muc-de|131.159.14.83|Munich, DE|48.1351253|11.5819806|12816|educational|Technical University of Munich
+nap-it|143.225.229.226|Napoli, IT|40.8400969|14.2516357|137|educational|University of Napoli
+nbo-ke|80.240.194.133|Nairobi, KE|-1.2920659|36.8219462|30844|commercial|Kenia IXP (KIXP; Liquid Telecom)
+nce-fr|88.183.56.195|Biot, FR|43.626851|7.09808|12322|residential|Residential (Free.fr)
+nce2-fr|193.253.230.214|Biot, FR|43.626851|7.09808|3215|commercial|Eurocom
+nic-cy|91.184.204.124|Nicosia, CY|35.1666667|33.3666667|35432|commercial|Cablenet Communication Systems
+nrt-jp|203.181.248.51|Tokyo, JP|35.6894875|139.6917064|7660|research|APAN
+nrt2-jp|219.119.53.9|Tokyo, JP|35.6894875|139.6917064|2497|residential|Residential (Plala NTT broadband)
+oak-us|192.150.187.132|Berkeley, CA, US|37.8715926|-122.272747|25|research|International Computer Science Institute (ICSI)
+oak2-us|172.56.30.137|Berkeley, CA, US|37.8715926|-122.272747|21928|residential|Residential (T-mobile 3G)
+oak3-us|99.38.248.96|Berkeley, CA, US|37.8715926|-122.272747|7018|residential|Residential (ATT U-verse)
+ord-us|140.192.218.138|Chicago, IL, US|41.8781136|-87.6297982|20130_54728|educational|DePaul University
+ory-fr|82.230.229.30|Paris, FR|48.856614|2.3522219|12322|residential|Residential (Iliad/Free France)
+osl-no|128.39.36.95|Lysaker, NO|59.9131287|10.640499|224|research|Simula Research Laboratory
+osl2-no|109.189.94.222|Oslo, NO|59.9138688|10.7522454|2119|residential|Residential (Canal Digital)
+oua-bf|196.28.246.227|Ouagadougou, BF|12.3714277|-1.5196603|25543|infrastructure|Onatel
+pao-us|73.222.19.29|Palo Alto, CA, US|37.4418834|-122.1430195|33651|residential|Residential (Comcast)
+pek-cn|218.241.107.98|Beijing, CN|39.904214|116.407413|24151|infrastructure|CNNIC
+per-au|113.197.9.170|Perth, AU|-31.9528536|115.8573389|7575|research|AARNet
+pna-es|130.206.158.142|Pamplona, ES|42.8179879|-1.6441835|766|educational|Public University of Navarra
+pry-za|196.216.3.6|Pretoria, ZA|-25.73134|28.21837|33764|infrastructure|AFRINIC
+psa-it|82.58.148.121|La Spezia, IT|44.1024504|9.8240826|12874|residential|Residential (Telecom Italia)
+psa2-it|2.231.28.121|Pisa, IT|43.7228386|10.4016888|12874|residential|Residential (Fastweb S.p.A.)
+rno-us|134.197.113.5|Reno, NV, US|39.5296329|-119.8138027|3851|educational|University of Nevada at Reno
+san-us|192.172.226.247|San Diego, CA, US|32.7153292|-117.1572551|1909|research|CAIDA
+san2-us|174.65.116.24|San Diego, CA, US|32.7153292|-117.1572551|22773|residential|Residential (Cox Broadband)
+san3-us|184.184.112.254|San Diego, CA, US|32.7153292|-117.1572551|22773|business|HB Networks
+sao-br|200.160.7.159|Sao Paulo, BR|-23.5489433|-46.6388182|22548|infrastructure|Registro.br
+sao2-br|200.136.34.2|Sao Paulo, BR|-23.5489433|-46.6388182|1251|research|Rede ANSP / Projeto NARA
+scl-cl|200.27.115.62|Santiago, CL|-33.4166667|-70.55|27678|infrastructure|NIC Chile
+scl2-cl|200.83.2.200|Santiago, CL|-33.4691199|-70.641997|22047|commercial|VTR
+sea-us|128.208.4.133|Seattle, WA, US|47.6062095|-122.3320708|73|educational|University of Washington
+she-cn|202.118.7.140|Shenyang, CN|41.80572|123.43147|4538|educational|Northeastern University
+sin-sg|203.123.48.15|Singapore, SG|1.352083|103.819836|37989|business|DCS1 Pte Ltd
+sin2-sg|202.6.102.35|Singapore, SG|1.352083|103.819836|45494|commercial|Openmirrors.asia - at Equinix SG1
+sjc2-us|64.71.191.54|San Jose, CA, US|37.3393857|-121.8949555|6939|commercial|Hurricane Electric
+sju-pr|70.45.95.170|San Juan, PR|18.4663338|-66.1057217|36423|commercial|Liberty Global (San Juan Cable)
+snn-ie|193.1.101.205|Limerick, IE|52.6680204|-8.6304975|1213|educational|University of Limerick
+sof-bg|87.121.150.68|Sofia, BG|42.6977082|23.3218675|34224|commercial|Neterra Ltd
+sof2-bg|93.123.23.254|Sofia, BG|42.6977082|23.3218675|57463|infrastructure|NetIX
+sql-us|149.20.4.11|Redwood City, CA, US|37.4852152|-122.2363548|1280|business|Internet Systems Consortium
+stn-uk|86.149.128.217|Ipswich, UK|52.056736|1.14822|2856|residential|Residential (British Telecom)
+syd-au|202.158.196.137|Sydney, AU|-33.873651|151.2068896|7575|research|AARNet
+tij-mx|199.48.225.18|Tijuana, MX|32.5149469|-117.0382471|174|infrastructure|Mexican Internet Exchange (MIE)
+tpe-tw|211.79.61.157|Hsinchu, TW|24.8039455|120.9646866|7539|research|TWAREN
+tul-us|70.184.37.54|Tulsa, OK, US|36.1539816|-95.992775|22773|commercial|True Digital Security (Cox Communication)
+tul2-us|99.28.101.40|Tulsa, OK, US|36.1539816|-95.992775|7018|residential|Residential (ATT U-verse)
+vie-at|78.41.116.2|Vienna, AT|48.2081743|16.3738189|35492|commercial|FunkFeuer
+wbu-us|192.43.244.202|Boulder, CO, US|40.0149856|-105.2705456|194|research|NCAR
+wbu2-us|71.237.71.12|Boulder, CO, US|40.0149856|-105.2705456|7922|residential|Residential (Comcast Broadband)
+wlg-nz|121.73.231.114|Wellington, NZ|-41.2864603|174.776236|4768|residential|Residential (Vodafone NZ, High Speed Cable)
+wlg2-nz|219.89.126.240|Belmont, NZ|-41.1942599|174.9228953|4771|residential|Residential (Spark DSL)
+wlg3-nz|202.46.176.66|Wellington, NZ|-41.2864603|174.776236|38037|infrastructure|.nz Registry
+wvi-us|142.254.101.194|Santa Cruz, CA, US|36.9741171|-122.0307963|46375|residential|Residential (Sonic.net)
+ylk-ca|198.73.133.10|Barrie, ON,CA|44.3893556|-79.6903316|19764|educational|Georgian College
+yow-ca|192.231.228.5|Ottawa, ON, CA|45.4215296|-75.6971931|10570|infrastructure|Ottawa Internet Exchange
+yto-ca|205.189.33.78|Ottawa, CA|45.4215296|-75.6971931|53904|research|Canarie
+yul-ca|24.225.143.13|Montreal, CA|45.5086699|-73.5539925|5769|commercial|Residential (Videotron)
+yyz-ca|206.108.0.41|Toronto, ON, CA|43.66|-79.3|11670|infrastructure|TorIX
+zrh-ch|192.41.136.226|Zurich, CH|47.367347|8.5500025|559|educational|University of Zurich
+zrh2-ch|81.94.127.244|Zug, CH|47.1745887|8.513854|34288|educational|Kantonsschule Zug

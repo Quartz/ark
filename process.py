@@ -1,43 +1,50 @@
 #!/usr/bin/env python
 
 import csv
+from datetime import date
 import os
-import sqlite3
+import psycopg2
 
 import envoy
 
 
 BIN_PATH = 'ark-tools/warts-aspaths'
-OUTPUT_FIELDS = [
-    'monitor_ip',
-    'monitor_as',
-    'dest_ip',
-    'dest_as',
-    'rtt',
-    'ip_hops',
-    'as_hops'
-]
-
-DB = None
-CURSOR = None
 
 
 def main():
     """
     Parse everything! Write results to a single output file.
     """
-    global DB
-    global CURSOR
+    db = psycopg2.connect(dbname='ark', user='ark')
+    cursor = db.cursor()
 
-    DB = sqlite3.connect('ark.db')
+    cursor.execute('DROP TABLE IF EXISTS monitors CASCADE;')
+    cursor.execute('''CREATE TABLE monitors (
+        name char(8) primary key,
+        ip char(15),
+        location varchar,
+        lat real,
+        lng real,
+        asn char(12),
+        org_class varchar,
+        org_name varchar);
+    ''')
 
-    DB.execute('PRAGMA main.synchronous=OFF')
-    DB.execute('PRAGMA main.journal_mode=MEMORY')
+    # REFERENCES monitors (name)
+    cursor.execute('DROP TABLE IF EXISTS traces;')
+    cursor.execute('''CREATE TABLE traces (
+        id serial primary key,
+        probe_date date,
+        monitor_name char(8),
+        monitor_ip char(15),
+        dest_ip char(15),
+        rtt real,
+        ip_hops integer,
+        as_hops integer,
+        trace varchar);
+    ''')
 
-    DB.execute('DROP TABLE IF EXISTS ark;')
-    DB.execute('CREATE TABLE ark (monitor_ip TEXT, monitor_as INTEGER, dest_ip TEXT, dest_as INTEGER, rtt REAL, ip_hops INTEGER, as_hops INTEGER);')
-
-    CURSOR = DB.cursor()
+    load_monitors(db)
 
     d = {
         'year': 2014,
@@ -45,12 +52,31 @@ def main():
         'day': 19
     }
 
-    parse_date(d)
+    parse_date(d, db)
 
-    CURSOR.close()
+    db.close()
 
 
-def parse_date(d):
+def load_monitors(db):
+    """
+    Parse data on Ark monitors.
+    """
+    cursor = db.cursor()
+
+    with open('ark-monitors-20160322.txt') as f:
+        reader = csv.reader(f, delimiter='|')
+        next(reader)
+
+        for row in reader:
+            data = ', '.join(['\'%s\'' % r for r in row])
+
+            cursor.execute('''
+                INSERT INTO monitors
+                VALUES (%s)''' % data)
+
+    db.commit()
+
+def parse_date(d, db):
     """
     Parse all Ark files for a single day.
     """
@@ -59,7 +85,9 @@ def parse_date(d):
 
     for filename in os.listdir(ark_root):
         print(filename)
+
         ark_path = os.path.join(ark_root, filename)
+        monitor_name = filename.split('.')[-3].strip()
 
         cmd = '%(bin)s -A %(routes)s %(warts)s' % {
             'bin': BIN_PATH,
@@ -69,15 +97,16 @@ def parse_date(d):
 
         r = envoy.run(cmd)
 
-        parse_ark(r.std_out)
+        parse_ark(monitor_name, date(d['year'], d['month'], d['day']), r.std_out, db)
 
 
-def parse_ark(ark_text):
+def parse_ark(monitor_name, probe_date, ark_text, db):
     """
     Parse Ark text format and stream results into a CSV writer.
     """
+    cursor = db.cursor()
+
     monitor_ip = None
-    monitor_as = None
 
     for line in ark_text.splitlines():
         if line[0] == '#':
@@ -89,20 +118,38 @@ def parse_ark(ark_text):
 
         if line[0] == 'M':
             monitor_ip = fields[1]
-            monitor_as = fields[2]
         else:
-            row ={
+            ip_hops = 0
+            as_hops = 0
+            last_asn = None
+
+            for field in fields[6:]:
+                asn, ips = field.split(':')
+                ip_hops += int(ips)
+
+                if asn in ['q', 'r', last_asn]:
+                    continue
+
+                as_hops += 1
+                last_asn = asn
+
+            row = {
+                'monitor_name': monitor_name,
+                'probe_date': probe_date,
                 'monitor_ip': monitor_ip,
-                'monitor_as': monitor_as,
                 'dest_ip': fields[3],
-                'dest_as': fields[5],
                 'rtt': fields[2],
-                'ip_hops': sum([int(f.split(':')[1]) for f in fields[6:]]),
-                'as_hops': len(fields) - 6
+                'ip_hops': ip_hops,
+                'as_hops': as_hops,
+                'trace': ','.join(fields[6:])
             }
 
-            CURSOR.execute('INSERT INTO ark VALUES (:monitor_ip, :monitor_as, :dest_ip, :dest_as, :rtt, :ip_hops, :as_hops)', row)
+            cursor.execute('''
+                INSERT INTO traces (probe_date, monitor_name, monitor_ip, dest_ip, rtt, ip_hops, as_hops, trace)
+                VALUES (%(probe_date)s, %(monitor_name)s, %(monitor_ip)s, %(dest_ip)s, %(rtt)s, %(ip_hops)s, %(as_hops)s, %(trace)s)'''
+            , row)
 
+    db.commit()
 
 if __name__ == '__main__':
     main()
