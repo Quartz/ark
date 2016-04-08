@@ -18,18 +18,26 @@ OUTPUT_FIELDS = [
     'as_hops'
 ]
 
-DB = sqlite3.connect('ark.db')
+DB = None
+CURSOR = None
 
 
 def main():
     """
     Parse everything! Write results to a single output file.
     """
-    DB.execute('PRAGMA synchronous=OFF')
-    DB.execute('PRAGMA journal_mode=MEMORY')
+    global DB
+    global CURSOR
 
-    DB.execute('DROP TABLE ark;')
+    DB = sqlite3.connect('ark.db')
+
+    DB.execute('PRAGMA main.synchronous=OFF')
+    DB.execute('PRAGMA main.journal_mode=MEMORY')
+
+    DB.execute('DROP TABLE IF EXISTS ark;')
     DB.execute('CREATE TABLE ark (monitor_ip TEXT, monitor_as INTEGER, dest_ip TEXT, dest_as INTEGER, rtt REAL, ip_hops INTEGER, as_hops INTEGER);')
+
+    CURSOR = DB.cursor()
 
     d = {
         'year': 2014,
@@ -39,6 +47,8 @@ def main():
 
     parse_date(d)
 
+    CURSOR.close()
+
 
 def parse_date(d):
     """
@@ -46,11 +56,6 @@ def parse_date(d):
     """
     routing_path = 'data.caida.org/datasets/routing/routeviews-prefix2as/%(year)d/%(month)02d/routeviews-rv2-%(year)d%(month)02d%(day)02d-1200.pfx2as.gz' % d
     ark_root = 'data.caida.org/datasets/topology/ark/ipv4/probe-data/team-1/2014/cycle-%(year)d%(month)02d%(day)02d/' % d
-    output_path = 'output/.csv' % d
-
-    f = open(output_path, 'w')
-    writer = csv.DictWriter(f, fieldnames=OUTPUT_FIELDS)
-    writer.writeheader()
 
     for filename in os.listdir(ark_root):
         print(filename)
@@ -66,15 +71,11 @@ def parse_date(d):
 
         parse_ark(r.std_out)
 
-    f.close()
-
 
 def parse_ark(ark_text):
     """
     Parse Ark text format and stream results into a CSV writer.
     """
-    c = DB.cursor()
-
     monitor_ip = None
     monitor_as = None
 
@@ -87,9 +88,8 @@ def parse_ark(ark_text):
         fields = line.strip().split('\t')
 
         if line[0] == 'M':
-            bits = line.split('\t')
-            monitor_ip = bits[1]
-            monitor_as = bits[2]
+            monitor_ip = fields[1]
+            monitor_as = fields[2]
         else:
             row ={
                 'monitor_ip': monitor_ip,
@@ -101,7 +101,7 @@ def parse_ark(ark_text):
                 'as_hops': len(fields) - 6
             }
 
-            c.execute('INSERT INTO ark VALUES (:monitor_ip, :monitor_as, :dest_ip, :dest_as, :rtt, :ip_hops, :as_hops)', row)
+            CURSOR.execute('INSERT INTO ark VALUES (:monitor_ip, :monitor_as, :dest_ip, :dest_as, :rtt, :ip_hops, :as_hops)', row)
 
 
 if __name__ == '__main__':
