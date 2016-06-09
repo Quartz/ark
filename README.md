@@ -19,7 +19,7 @@ This project also requires a running, local instance of Postgres with a no-passw
 
 ## Sourcing the data
 
-This script will download all the Ark data, for all three monitor teams, for every day in March of 2014. Caution: **This is 87GB of data**.
+This script uses data from CAIDA's [Ark IPv4 Routed /24 Topology Dataset](http://www.caida.org/data/active/ipv4_routed_24_topology_dataset.xml). The following script will will download all data, for all three monitoring teams, for every day in March of 2014. Caution: **This is 87GB of data**. The script can be stopped and started without starting over.
 
 ```
 ./fetch.sh
@@ -28,7 +28,7 @@ This script will download all the Ark data, for all three monitor teams, for eve
 You will also need to download the following files to the root project directory:
 
 * [MaxMind GeoLite2 Country database](http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz) (unzip it)
-* [Geoff Huston's mapping of AS numbers to names](http://bgp.potaroo.net/as6447/asnames.txt)
+* [BGP Reports mapping of AS numbers to names](http://bgp.potaroo.net/as6447/asnames.txt)
 
 ## Building the database
 
