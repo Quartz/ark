@@ -6,9 +6,11 @@ import os
 import psycopg2
 
 import envoy
+import maxminddb
 
 
 BIN_PATH = 'ark-tools/warts-aspaths'
+MAXMIND = maxminddb.open_database('GeoLite2-City.mmdb')
 
 
 def main():
@@ -27,7 +29,14 @@ def main():
         lng real,
         asn char(12),
         org_class varchar,
-        org_name varchar);
+        org_name varchar,
+        geom GEOMETRY(Point, 4326)
+    );
+    ''')
+
+    cursor.execute('''CREATE INDEX monitors_gix
+        ON monitors
+        USING GIST (geom);
     ''')
 
     # REFERENCES monitors (name)
@@ -38,21 +47,36 @@ def main():
         monitor_name char(8),
         monitor_ip char(15),
         dest_ip char(15),
+        country varchar,
+        subdivision varchar,
+        city varchar,
+        lat real,
+        lng real,
         rtt real,
         ip_hops integer,
         as_hops integer,
-        trace varchar);
+        trace varchar,
+        geom GEOMETRY(Point, 4326)
+    );
+    ''')
+
+    cursor.execute('''CREATE INDEX traces_gix
+        ON traces
+        USING GIST (geom);
     ''')
 
     load_monitors(db)
 
-    d = {
-        'year': 2014,
-        'month': 3,
-        'day': 19
-    }
+    for day in range(1, 7):
+        d = {
+            'year': 2014,
+            'month': 3,
+            'day': day
+        }
 
-    parse_date(d, db)
+        print(d)
+
+        parse_date(d, db)
 
     db.close()
 
@@ -69,6 +93,7 @@ def load_monitors(db):
 
         for row in reader:
             data = ', '.join(['\'%s\'' % r for r in row])
+            data += ', ST_GeomFromText(\'POINT(%s %s)\', 4326)' % (row[4], row[3])
 
             cursor.execute('''
                 INSERT INTO monitors
@@ -76,28 +101,38 @@ def load_monitors(db):
 
     db.commit()
 
+
 def parse_date(d, db):
     """
     Parse all Ark files for a single day.
     """
     routing_path = 'data.caida.org/datasets/routing/routeviews-prefix2as/%(year)d/%(month)02d/routeviews-rv2-%(year)d%(month)02d%(day)02d-1200.pfx2as.gz' % d
-    ark_root = 'data.caida.org/datasets/topology/ark/ipv4/probe-data/team-1/2014/cycle-%(year)d%(month)02d%(day)02d/' % d
 
-    for filename in os.listdir(ark_root):
-        print(filename)
+    for team in range(1, 4):
+        print('team-%i' % team)
 
-        ark_path = os.path.join(ark_root, filename)
-        monitor_name = filename.split('.')[-3].strip()
+        d['team'] = team
 
-        cmd = '%(bin)s -A %(routes)s %(warts)s' % {
-            'bin': BIN_PATH,
-            'routes': routing_path,
-            'warts': ark_path
-        }
+        ark_root = 'data.caida.org/datasets/topology/ark/ipv4/probe-data/team-%(team)i/2014/cycle-%(year)d%(month)02d%(day)02d/' % d
 
-        r = envoy.run(cmd)
+        if not os.path.exists(ark_root):
+            continue
 
-        parse_ark(monitor_name, date(d['year'], d['month'], d['day']), r.std_out, db)
+        for filename in os.listdir(ark_root):
+            print(filename)
+
+            ark_path = os.path.join(ark_root, filename)
+            monitor_name = filename.split('.')[-3].strip()
+
+            cmd = '%(bin)s -A %(routes)s %(warts)s' % {
+                'bin': BIN_PATH,
+                'routes': routing_path,
+                'warts': ark_path
+            }
+
+            r = envoy.run(cmd)
+
+            parse_ark(monitor_name, date(d['year'], d['month'], d['day']), r.std_out, db)
 
 
 def parse_ark(monitor_name, probe_date, ark_text, db):
@@ -133,20 +168,47 @@ def parse_ark(monitor_name, probe_date, ark_text, db):
                 as_hops += 1
                 last_asn = asn
 
+            loc = MAXMIND.get(fields[3])
+            country = None
+            subdivision = None
+            city = None
+            lat = None
+            lng = None
+
+            if loc:
+                if 'country' in loc:
+                    country = loc['country']['names']['en']
+
+                if 'subdivisions' in loc:
+                    subdivision = loc['subdivisions'][0]['names']['en']
+
+                if 'city' in loc:
+                    city = loc['city']['names']['en']
+
+                if 'location' in loc:
+                    lat = loc['location']['latitude']
+                    lng = loc['location']['longitude']
+
             row = {
                 'monitor_name': monitor_name,
                 'probe_date': probe_date,
                 'monitor_ip': monitor_ip,
                 'dest_ip': fields[3],
+                'country': country,
+                'subdivision': subdivision,
+                'city': city,
+                'lat': lat,
+                'lng': lng,
                 'rtt': fields[2],
                 'ip_hops': ip_hops,
                 'as_hops': as_hops,
-                'trace': ','.join(fields[6:])
+                'trace': ','.join(fields[6:]),
+                'geom': 'POINT(%s %s)' % (lng, lat) if lng and lat else None
             }
 
             cursor.execute('''
-                INSERT INTO traces (probe_date, monitor_name, monitor_ip, dest_ip, rtt, ip_hops, as_hops, trace)
-                VALUES (%(probe_date)s, %(monitor_name)s, %(monitor_ip)s, %(dest_ip)s, %(rtt)s, %(ip_hops)s, %(as_hops)s, %(trace)s)'''
+                INSERT INTO traces (probe_date, monitor_name, monitor_ip, dest_ip, country, subdivision, city, lat, lng, rtt, ip_hops, as_hops, trace, geom)
+                VALUES (%(probe_date)s, %(monitor_name)s, %(monitor_ip)s, %(dest_ip)s, %(country)s, %(subdivision)s, %(city)s, %(lat)s, %(lng)s, %(rtt)s, %(ip_hops)s, %(as_hops)s, %(trace)s, ST_GeomFromText(%(geom)s, 4326));'''
             , row)
 
     db.commit()
