@@ -19,7 +19,7 @@ This project also requires a running, local instance of Postgres with a no-passw
 
 ## Sourcing the data
 
-Note: this is a huge amount of data and will take a very long time to download:
+This script will download all the Ark data, for all three monitor teams, for every day in March of 2014. Caution: **This is 87GB of data**.
 
 ```
 ./fetch.sh
