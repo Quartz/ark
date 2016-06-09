@@ -25,11 +25,11 @@ This script will download all the Ark data, for all three monitor teams, for eve
 ./fetch.sh
 ```
 
-You will also need to download the [MaxMind GeoLite2 Country database](http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz) and unzip it in the root directory as `GeoLite2-City.mmdb`.
+You will also need the [MaxMind GeoLite2 Country database](http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz) unzipped in the root directory of this project.
 
 ## Building the database
 
-Warning: **This takes a very, very long time.** Think days, not hours.
+Warning: This script will run for around a half hour **per day of data**. If you're loading a month of data it could easily take a full day. (Assuming you even have the disk space to hold it all.)
 
 ```
 python process.py
