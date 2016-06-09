@@ -25,7 +25,10 @@ This script will download all the Ark data, for all three monitor teams, for eve
 ./fetch.sh
 ```
 
-You will also need the [MaxMind GeoLite2 Country database](http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz) unzipped in the root directory of this project.
+You will also need to download the following files to the root project directory:
+
+* [MaxMind GeoLite2 Country database](http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz) (unzip it)
+* [Geoff Huston's mapping of AS numbers to names](http://bgp.potaroo.net/as6447/asnames.txt)
 
 ## Building the database
 

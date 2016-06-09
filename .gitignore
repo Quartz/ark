@@ -4,3 +4,5 @@ ark
 routing
 GeoLite2-City.mmdb
 data.caida.org
+trace.csv
+asnames.txt
