@@ -29,6 +29,8 @@ You will also need to download the [MaxMind GeoLite2 Country database](http://ge
 
 ## Building the database
 
+Warning: **This takes a very, very long time.** Think days, not hours.
+
 ```
 python process.py
 ```
