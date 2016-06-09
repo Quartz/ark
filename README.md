@@ -1,8 +1,8 @@
 # ark
 
-Tools for processing traceroute data from CAIDA's [Ark project]().
+Tools for processing traceroute data from CAIDA's [Ark project](http://www.caida.org/projects/ark/).
 
-Note: tools in the `ark-tools` folder were provided by Young Hyun from CAIDA.
+Note: tools in the `ark-tools` folder were provided by [Young Hyun](http://www.caida.org/~youngh/) from CAIDA.
 
 ## Setup
 
@@ -12,10 +12,10 @@ pip install -r requirements.txt
 
 cd ark-tools
 gem install rb-asfinder-0.10.1.gem rb-wartslib-1.4.2.gem
-cd ..
+cd ..   
 ```
 
-This project also requires a running, local instance of Postgres with a no-password user named `ark` who owns a database named `ark.`
+This project also requires a running, local instance of Postgres with a no-password user named `ark` who owns a geo-enabled database named `ark`.
 
 ## Sourcing the data
 
