@@ -9,7 +9,7 @@ import envoy
 import maxminddb
 
 
-BIN_PATH = 'ark-tools/warts-aspaths'
+BIN_PATH = 'ark-tools/simple_warts.rb'
 MAXMIND = maxminddb.open_database('GeoLite2-City.mmdb')
 
 
@@ -46,7 +46,9 @@ def main():
         probe_date date,
         monitor_name char(8),
         monitor_ip char(15),
+        monitor_as varchar,
         dest_ip char(15),
+        dest_as varchar,
         country varchar,
         subdivision varchar,
         city varchar,
@@ -124,7 +126,7 @@ def parse_date(d, db):
             ark_path = os.path.join(ark_root, filename)
             monitor_name = filename.split('.')[-3].strip()
 
-            cmd = '%(bin)s -A %(routes)s %(warts)s' % {
+            cmd = '%(bin)s %(routes)s %(warts)s' % {
                 'bin': BIN_PATH,
                 'routes': routing_path,
                 'warts': ark_path
@@ -141,75 +143,63 @@ def parse_ark(monitor_name, probe_date, ark_text, db):
     """
     cursor = db.cursor()
 
-    monitor_ip = None
+    monitors = []
 
     for line in ark_text.splitlines():
-        if line[0] == '#':
-            continue
-        elif line[0] == 'T':
-            continue
-
         fields = line.strip().split('\t')
 
-        if line[0] == 'M':
-            monitor_ip = fields[1]
-        else:
-            ip_hops = 0
-            as_hops = 0
-            last_asn = None
+        row = {
+            'monitor_name': monitor_name,
+            'probe_date': probe_date,
+            'monitor_ip': fields[0],
+            'monitor_as': fields[1],
+            'dest_ip': fields[2],
+            'dest_as': fields[3],
+            'country': None,
+            'subdivision': None,
+            'city': None,
+            'lat': None,
+            'lng': None,
+            'rtt': fields[4],
+            'ip_hops': 0,
+            'as_hops': 0,
+            'trace': ','.join(fields[5:]),
+            'geom': None
+        }
 
-            for field in fields[6:]:
-                asn, ips = field.split(':')
-                ip_hops += int(ips)
+        last_asn = None
 
-                if asn in ['q', 'r', last_asn]:
-                    continue
+        for field in fields[5:]:
+            ip, asn = field.split(':')
+            row['ip_hops'] += 1
 
-                as_hops += 1
-                last_asn = asn
+            if asn in ['q', 'r', last_asn]:
+                continue
 
-            loc = MAXMIND.get(fields[3])
-            country = None
-            subdivision = None
-            city = None
-            lat = None
-            lng = None
+            row['as_hops'] += 1
+            last_asn = asn
 
-            if loc:
-                if 'country' in loc:
-                    country = loc['country']['names']['en']
+        loc = MAXMIND.get(row['dest_ip'])
 
-                if 'subdivisions' in loc:
-                    subdivision = loc['subdivisions'][0]['names']['en']
+        if loc:
+            if 'country' in loc:
+                row['country'] = loc['country']['names']['en']
 
-                if 'city' in loc:
-                    city = loc['city']['names']['en']
+            if 'subdivisions' in loc:
+                row['subdivision'] = loc['subdivisions'][0]['names']['en']
 
-                if 'location' in loc:
-                    lat = loc['location']['latitude']
-                    lng = loc['location']['longitude']
+            if 'city' in loc:
+                row['city'] = loc['city']['names']['en']
 
-            row = {
-                'monitor_name': monitor_name,
-                'probe_date': probe_date,
-                'monitor_ip': monitor_ip,
-                'dest_ip': fields[3],
-                'country': country,
-                'subdivision': subdivision,
-                'city': city,
-                'lat': lat,
-                'lng': lng,
-                'rtt': fields[2],
-                'ip_hops': ip_hops,
-                'as_hops': as_hops,
-                'trace': ','.join(fields[6:]),
-                'geom': 'POINT(%s %s)' % (lng, lat) if lng and lat else None
-            }
+            if 'location' in loc:
+                row['lat'] = loc['location']['latitude']
+                row['lng'] = loc['location']['longitude']
+                row['geom'] = 'POINT(%s %s)' % (row['lng'], row['lat']) if row['lng'] and row['lat'] else None
 
-            cursor.execute('''
-                INSERT INTO traces (probe_date, monitor_name, monitor_ip, dest_ip, country, subdivision, city, lat, lng, rtt, ip_hops, as_hops, trace, geom)
-                VALUES (%(probe_date)s, %(monitor_name)s, %(monitor_ip)s, %(dest_ip)s, %(country)s, %(subdivision)s, %(city)s, %(lat)s, %(lng)s, %(rtt)s, %(ip_hops)s, %(as_hops)s, %(trace)s, ST_GeomFromText(%(geom)s, 4326));'''
-            , row)
+        cursor.execute('''
+            INSERT INTO traces (probe_date, monitor_name, monitor_ip, monitor_as, dest_ip, dest_as, country, subdivision, city, lat, lng, rtt, ip_hops, as_hops, trace, geom)
+            VALUES (%(probe_date)s, %(monitor_name)s, %(monitor_ip)s, %(monitor_as)s, %(dest_ip)s, %(dest_as)s, %(country)s, %(subdivision)s, %(city)s, %(lat)s, %(lng)s, %(rtt)s, %(ip_hops)s, %(as_hops)s, %(trace)s, ST_GeomFromText(%(geom)s, 4326));'''
+        , row)
 
     db.commit()
 

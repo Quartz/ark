@@ -24,16 +24,16 @@
 ## it under the terms of the GNU General Public License as published by
 ## the Free Software Foundation; either version 2 of the License, or
 ## (at your option) any later version.
-## 
+##
 ## This program is distributed in the hope that it will be useful,
 ## but WITHOUT ANY WARRANTY; without even the implied warranty of
 ## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ## GNU General Public License for more details.
-## 
+##
 ## You should have received a copy of the GNU General Public License
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-## 
+##
 ## $Id: warts-aspaths,v 1.6 2016/04/08 00:18:18 youngh Exp $
 #############################################################################
 
@@ -121,14 +121,12 @@ class ASPaths
   end
 
   def print_all
-    printf "T\t%d\t%d\n", @timestamp_min, @timestamp_max
-
     @monitor_info.each do |info, v|
       printf "M\t%s\t%d\n", info, v
     end
 
-    # @paths.each do |line, v|
-    @paths.keys.sort { |a, b| prefix_cmp(a, b) }.each do |line|
+    @paths.each do |line, v|
+    # @paths.keys.sort { |a, b| prefix_cmp(a, b) }.each do |line|
       printf "P\t%s\n", line
     end
   end
@@ -148,18 +146,23 @@ class ASPaths
   def monitor_key(address, as)
     as_value = (as ? as : "UNKNOWN")
     key = "#{address}\t#{as_value}"
+
     id = @monitor_info[key]
+
     if id == nil
       @monitor_info[key] = @monitor_info.length
     end
+
     @monitor_info[key]
   end
 
   def add_path monitor, rtt, dst, prefix, dstas, aspath
     line = "#{monitor}\t#{rtt}\t#{dst}\t#{prefix}\t#{dstas}"
+
     for i in 0..aspath.length
       line.concat("\t#{aspath[i]}");
     end
+
     @paths[line] = 1
   end
 

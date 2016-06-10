@@ -2,9 +2,7 @@
 
 Tools for processing traceroute data from CAIDA's [Ark project](http://www.caida.org/projects/ark/).
 
-Tools in the `ark-tools` folder were provided by [Young Hyun](http://www.caida.org/~youngh/) from CAIDA.
-
-Tools in the `scamper` folder are from CMAND's Python implementation of the [scamper toolset](https://github.com/cmand/scamper/). (With minor modifications to work in Python 3.)
+Tools in the `ark-tools` folder were provided by CAIDA's [Young Hyun](http://www.caida.org/~youngh/).
 
 ## Setup
 
@@ -42,7 +40,7 @@ You will also need to download the following files to the root project directory
 Warning: This script will run for around a half hour **per day of data**. If you're loading a month of data it could easily take a full day. (Assuming you even have the disk space to hold it all.)
 
 ```
-python process.py
+./process.py
 ```
 
 ## Running queries
@@ -50,4 +48,12 @@ python process.py
 ```
 cat by_country.sql | psql -q ark
 cat by_monitor.sql | psql -q ark
+```
+
+## Analyzing a trace path
+
+You can pass a `trace` from the database into `parse_trace.py` to generate detailed path data in CSV format:
+
+```
+./parse_trace.py "216.66.30.102:6939,216.66.30.101:6939,213.248.67.125:1299,213.155.130.34:1299,157.130.60.13:701,:q,:r,108.51.141.48:701" > nyc_to_dc.csv
 ```
