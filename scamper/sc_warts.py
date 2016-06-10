@@ -324,7 +324,8 @@ class WartsReader(object):
 
   @staticmethod
   def hexdump(buf):
-    return ''.join('{:02x}'.format(ord(x)) for x in buf)
+    # return ''.join('{:02x}'.format(ord(x)) for x in buf)
+    return 'NOT PARSING'
 
   @staticmethod
   def bit_set(b, i):
@@ -361,13 +362,13 @@ class WartsReader(object):
   @staticmethod
   def read_string(f):
     """ read a null terminated string """
-    s = ''
+    s = b''
     while True:
       b = f.read(1)
       if len(b) != 1: break
       if ord(b) == 0x00: break
       s += b
-    return s
+    return s.decode('utf-8')
 
 
 def warts_open(infile):

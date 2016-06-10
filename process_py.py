@@ -1,12 +1,20 @@
 #!/usr/bin/env python
 
+"""
+Pure-Python parser: too slow to use!
+"""
+
 import csv
 from datetime import date
+import gzip
+from io import TextIOWrapper
 import os
-import psycopg2
+from pprint import pprint
 
 import envoy
 import maxminddb
+import psycopg2
+import pytricia
 from scamper.sc_warts import WartsReader
 
 
@@ -20,12 +28,14 @@ class ArkLoader(object):
         self._db_user = db_user
 
         self._db = None
-        self._as_lookup = {}
+        self._as_trie = None
+        self._as_lookup = None
 
     def run(self):
         self._setup_db()
         self._load_monitors()
-        self._load_asnames()
+        self._load_as_trie()
+        self._load_as_names()
 
         for day in range(1, 7):
             d = {
@@ -69,9 +79,11 @@ class ArkLoader(object):
         cursor.execute('''CREATE TABLE traces (
             id serial primary key,
             probe_date date,
+            probe_team integer,
             monitor_name char(8),
             monitor_ip char(15),
             dest_ip char(15),
+            dest_as varchar,
             country varchar,
             subdivision varchar,
             city varchar,
@@ -94,6 +106,8 @@ class ArkLoader(object):
         """
         Parse data on Ark monitors.
         """
+        print('Loading monitors')
+
         cursor = self._db.cursor()
 
         with open('ark-monitors-20160322.txt') as f:
@@ -110,14 +124,46 @@ class ArkLoader(object):
 
         self._db.commit()
 
-    def _load_asnames(self):
+    def _load_as_trie(self):
+        """
+        This script parses BGP routeviews data (as captured by Ark) into a
+        prefix > AS map.
+
+        http://data.caida.org/datasets/routing/routeviews-prefix2as/
+        """
+        print('Loading AS trie')
+
+        self._as_trie = pytricia.PyTricia()
+
+        with gzip.open('data.caida.org/datasets/routing/routeviews-prefix2as/2014/03/routeviews-rv2-20140302-1200.pfx2as.gz', 'r') as f:
+            reader = csv.reader(TextIOWrapper(f), delimiter='\t')
+
+            for prefix, bits, asn in reader:
+                key = '%s/%s' % (prefix, bits)
+                self._as_trie[key] = asn
+
+    def _get_asn(self, ip):
+        """
+        Derive an ASN from an IP using the trie map.
+        """
+        try:
+            return self._as_trie[ip]
+        except KeyError:
+            if not ip:
+                return 'q'
+            else:
+                return 'r'
+
+    def _load_as_names(self):
         """
         Format:
 
         AS0           -Reserved AS-, ZZ
         AS1           LVLT-1 - Level 3 Communications, Inc., US
         """
-        self._as_lookup = {}
+        print('Loading AS names')
+
+        self._as_names = {}
 
         with open('asnames.txt', encoding='latin-1') as f:
             for line in f:
@@ -127,12 +173,14 @@ class ArkLoader(object):
                 asn = line[:14].strip().replace('AS', '')
                 name, country = line[14:].strip().rsplit(',', 1)
 
-                self._as_lookup[asn] = (name, country)
+                self._as_names[asn] = (name, country)
 
     def _parse_date(self, d):
         """
         Parse all Ark files for a single day.
         """
+        print('Parsing!')
+
         routing_path = 'data.caida.org/datasets/routing/routeviews-prefix2as/%(year)d/%(month)02d/routeviews-rv2-%(year)d%(month)02d%(day)02d-1200.pfx2as.gz' % d
 
         for team in range(1, 4):
@@ -151,93 +199,99 @@ class ArkLoader(object):
                 ark_path = os.path.join(ark_root, filename)
                 monitor_name = filename.split('.')[-3].strip()
 
-                cmd = '%(bin)s -A %(routes)s %(warts)s' % {
-                    'bin': BIN_PATH,
-                    'routes': routing_path,
-                    'warts': ark_path
-                }
+                reader = WartsReader(ark_path)
 
-                r = envoy.run(cmd)
+                while True:
+                    (flags, hops) = reader.next()
 
-                self._parse_ark(monitor_name, date(d['year'], d['month'], d['day']), r.std_out)
+                    if not flags:
+                        break
 
-    def _parse_ark(self, monitor_name, probe_date, ark_text):
+                    self._parse_ark(monitor_name, d, flags, hops)
+
+    def _parse_ark(self, monitor_name, meta, flags, hops):
         """
         Parse Ark text format and stream results into a CSV writer.
         """
         cursor = self._db.cursor()
 
-        monitor_ip = None
+        monitor_ip = flags['srcaddr']
+        probe_date = date(meta['year'], meta['month'], meta['day'])
+        probe_team = meta['team']
+        dest_ip = flags['dstaddr']
+        dest_as = self._get_asn(flags['dstaddr'])
+        total_rtt = hops[-1]['rtt']
 
-        for line in ark_text.splitlines():
-            if line[0] == '#':
-                continue
-            elif line[0] == 'T':
-                continue
+        last_asn = None
+        as_hops = 0
 
-            fields = line.strip().split('\t')
+        trace = []
 
-            if line[0] == 'M':
-                monitor_ip = fields[1]
-            else:
-                ip_hops = 0
-                as_hops = 0
-                last_asn = None
+        for hop in hops:
+            hop_ip = hop['addr']
+            asn = self._get_asn(hop_ip)
 
-                for field in fields[6:]:
-                    asn, ips = field.split(':')
-                    ip_hops += int(ips)
+            trace.append((hop_ip, asn))
 
-                    if asn in ['q', 'r', last_asn]:
-                        continue
+            if asn != last_asn:
+                as_hops += 1
 
-                    as_hops += 1
-                    last_asn = asn
+            last_asn = asn
 
-                loc = MAXMIND.get(fields[3])
-                country = None
-                subdivision = None
-                city = None
-                lat = None
-                lng = None
+        row = {
+            'monitor_name': monitor_name,
+            'probe_date': probe_date,
+            'probe_team': probe_team,
+            'monitor_ip': monitor_ip,
+            'dest_ip': dest_ip,
+            'dest_as': dest_as,
+            'rtt': total_rtt,
+            'ip_hops': len(trace),
+            'as_hops': as_hops,
+            'trace': ','.join([':'.join(t) for t in trace])
+        }
 
-                if loc:
-                    if 'country' in loc:
-                        country = loc['country']['names']['en']
+        row.update(self._geocode(dest_ip))
 
-                    if 'subdivisions' in loc:
-                        subdivision = loc['subdivisions'][0]['names']['en']
-
-                    if 'city' in loc:
-                        city = loc['city']['names']['en']
-
-                    if 'location' in loc:
-                        lat = loc['location']['latitude']
-                        lng = loc['location']['longitude']
-
-                row = {
-                    'monitor_name': monitor_name,
-                    'probe_date': probe_date,
-                    'monitor_ip': monitor_ip,
-                    'dest_ip': fields[3],
-                    'country': country,
-                    'subdivision': subdivision,
-                    'city': city,
-                    'lat': lat,
-                    'lng': lng,
-                    'rtt': fields[2],
-                    'ip_hops': ip_hops,
-                    'as_hops': as_hops,
-                    'trace': ','.join(fields[6:]),
-                    'geom': 'POINT(%s %s)' % (lng, lat) if lng and lat else None
-                }
-
-                cursor.execute('''
-                    INSERT INTO traces (probe_date, monitor_name, monitor_ip, dest_ip, country, subdivision, city, lat, lng, rtt, ip_hops, as_hops, trace, geom)
-                    VALUES (%(probe_date)s, %(monitor_name)s, %(monitor_ip)s, %(dest_ip)s, %(country)s, %(subdivision)s, %(city)s, %(lat)s, %(lng)s, %(rtt)s, %(ip_hops)s, %(as_hops)s, %(trace)s, ST_GeomFromText(%(geom)s, 4326));'''
-                , row)
+        cursor.execute('''
+            INSERT INTO traces (probe_date, probe_team, monitor_name, monitor_ip, dest_ip, dest_as, country, subdivision, city, lat, lng, rtt, ip_hops, as_hops, trace, geom)
+            VALUES (%(probe_date)s, %(probe_team)s, %(monitor_name)s, %(monitor_ip)s, %(dest_ip)s, %(dest_as)s, %(country)s, %(subdivision)s, %(city)s, %(lat)s, %(lng)s, %(rtt)s, %(ip_hops)s, %(as_hops)s, %(trace)s, ST_GeomFromText(%(geom)s, 4326));'''
+        , row)
 
         self._db.commit()
+
+    def _geocode(self, ip):
+        """
+        Geocode a given IP using the MaxMind city database.
+        """
+        loc = MAXMIND.get(ip)
+
+        data = {
+            'country': None,
+            'subdivision': None,
+            'city': None,
+            'lat': None,
+            'lng': None,
+            'geom': None
+        }
+
+        if loc:
+            if 'country' in loc:
+                data['country'] = loc['country']['names']['en']
+
+            if 'subdivisions' in loc:
+                data['subdivision'] = loc['subdivisions'][0]['names']['en']
+
+            if 'city' in loc:
+                data['city'] = loc['city']['names']['en']
+
+            if 'location' in loc:
+                data['lat'] = loc['location']['latitude']
+                data['lng'] = loc['location']['longitude']
+
+                data['geom'] = 'POINT(%(lng)s %(lat)s)' % data
+
+        return data
 
 if __name__ == '__main__':
     loader = ArkLoader('ark_py2', 'ark')

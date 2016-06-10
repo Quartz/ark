@@ -4,7 +4,7 @@ Tools for processing traceroute data from CAIDA's [Ark project](http://www.caida
 
 Tools in the `ark-tools` folder were provided by [Young Hyun](http://www.caida.org/~youngh/) from CAIDA.
 
-Tools in the `scamper` folder are from CMAND's Python implementation of the [scamper toolset](https://github.com/cmand/scamper/).
+Tools in the `scamper` folder are from CMAND's Python implementation of the [scamper toolset](https://github.com/cmand/scamper/). (With minor modifications to work in Python 3.)
 
 ## Setup
 
