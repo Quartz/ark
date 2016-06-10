@@ -2,7 +2,9 @@
 
 Tools for processing traceroute data from CAIDA's [Ark project](http://www.caida.org/projects/ark/).
 
-Note: tools in the `ark-tools` folder were provided by [Young Hyun](http://www.caida.org/~youngh/) from CAIDA.
+Tools in the `ark-tools` folder were provided by [Young Hyun](http://www.caida.org/~youngh/) from CAIDA.
+
+Tools in the `scamper` folder are from CMAND's Python implementation of the [scamper toolset](https://github.com/cmand/scamper/).
 
 ## Setup
 
@@ -15,7 +17,12 @@ gem install rb-asfinder-0.10.1.gem rb-wartslib-1.4.2.gem
 cd ..   
 ```
 
-This project also requires a running, local instance of Postgres with a no-password user named `ark` who owns a geo-enabled database named `ark`.
+This project also requires a running, local instance of Postgres with a no-password user named `ark` who owns a geo-enabled database named `ark`:
+
+```
+createdb -O ark ark
+psql -q ark -c "CREATE EXTENSION postgis;"
+```
 
 ## Sourcing the data
 

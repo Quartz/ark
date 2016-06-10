@@ -3,6 +3,8 @@
 """
 This script parses BGP routeviews data (as captured by Ark) into a
 prefix > AS map.
+
+http://data.caida.org/datasets/routing/routeviews-prefix2as/
 """
 
 import csv
